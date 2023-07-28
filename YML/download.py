@@ -1,118 +1,179 @@
-from __future__ import annotations
-# 用于显示进度条
-from tqdm import tqdm
-# 用于发起网络请求
-import requests
-# 用于多线程操作
-import multitasking
-import signal
-# 导入 retry 库以方便进行下载出错重试
-from retry import retry
-import shutil,os
-signal.signal(signal.SIGINT, multitasking.killall)
-
-# 请求头
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36 QIHU 360SE'
-}
-# 定义 1 MB 多少为 B
-MB = 1024**2
-
-
-def split(start: int, end: int, step: int) -> list[tuple[int, int]]:
-    # 分多块
-    parts = [(start, min(start+step, end))
-             for start in range(0, end, step)]
-    return parts
+from os import makedirs
+from urllib.request import urlretrieve  # 下载函数
+from sys import stdout
+from os.path import exists, split
+from json import loads
+from threading import Thread
+import ssl
+import urllib
+import random
+try:
+    opener = urllib.request.build_opener()
+    # 构建请求头列表每次随机选择一个
+    ua_list = ['Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0',
+               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36 Edg/103.0.1264.62',
+               'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:98.0) Gecko/20100101 Firefox/98.0',
+               'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.81 Safari/537.36 SE 2.X MetaSr 1.0'
+               ]
+    opener.addheaders = [('User-Agent', random.choice(ua_list))]
+    urllib.request.install_opener(opener)
 
 
-def get_file_size(url: str, raise_error: bool = False) -> int:
-    '''
-    获取文件大小
+    ssl._create_default_https_context = ssl._create_unverified_context
+    # 下载文件函数
+    def download(url: str, path: str):
+        # try:
+        print(url)
+        (filepath, filename) = split(path)
+        if not exists(filepath):
+            makedirs(filepath)
 
-    Parameters
-    ----------
-    url : 文件直链
-    raise_error : 如果无法获取文件大小，是否引发错误
-    Return
-    ------
-    文件大小（B为单位）
-    如果不支持则会报错
+        def hook(blocknum, bs, size):  # 回调
+            # blocknum数据块数量
+            # bs数据块大小
+            # size下载下来的总大小
+            # 下载进度 = (blocknum x bs) / size
+            a = int(float(blocknum * bs) / size * 100)
+            if a >= 100:
+                a = 100
 
-    '''
-    response = requests.head(url)
-    file_size = response.headers.get('Content-Length')
-    if file_size is None:
-        if raise_error is True:
-            raise ValueError('该文件不支持多线程分段下载！')
-        return file_size
-    return int(file_size)
+            stdout.write("\r>>正在下载" + filename + ":" + str(a) + "%")
+
+        urlretrieve(url=url, filename=path, reporthook=hook)
+        print("\n")
+        # except:
+        #     # print("\n由于网络原因，下载发生错误，正在尝试重新下载\n")
+        #     # download(url=url, path=path)
 
 
-def download(url: str, file_name: str, file_directory: str, retry_times: int = 3, each_size=16*MB) -> None:
-    '''
-    根据文件直链和文件名下载文件
+    def downloadList(Path,version):
+        # 下载版本清单文件
+        # url = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
+        url = "https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json"  # 国内源
+        path = Path+"/"+version+"/version_manifest.json"
 
-    Parameters
-    ----------
-    url : 文件直链
-    file_name : 文件名
-    dir : 文件储存位置
-    retry_times: 可选的，每次连接失败重试次数
-    Return
-    ------
-    None
+        download(url=url, path=path)
+        print("下载完成\n")
 
-    '''
-    f = open(file_name, 'wb')
-    file_size = get_file_size(url)
 
-    @retry(tries=retry_times)
-    @multitasking.task
-    def start_download(start: int, end: int) -> None:
-        '''
-        根据文件起止位置下载文件
 
-        Parameters
-        ----------
-        start : 开始位置
-        end : 结束位置
-        '''
-        _headers = headers.copy()
-        # 分段下载的核心
-        _headers['Range'] = f'bytes={start}-{end}'
-        # 发起请求并获取响应（流式）
-        response = session.get(url, headers=_headers, stream=True)
-        # 每次读取的流式响应大小
-        chunk_size = 128
-        # 暂存已获取的响应，后续循环写入
-        chunks = []
-        for chunk in response.iter_content(chunk_size=chunk_size):
-            # 暂存获取的响应
-            chunks.append(chunk)
-            # 更新进度条
-            bar.update(chunk_size)
-        f.seek(start)
-        for chunk in chunks:
-            f.write(chunk)
-        # 释放已写入的资源
-        del chunks
 
-    session = requests.Session()
-    # 分块文件如果比文件大，就取文件大小为分块大小
-    each_size = min(each_size, file_size)
 
-    # 分块
-    parts = split(0, file_size, each_size)
-    print(f'分块数：{len(parts)}')
-    # 创建进度条
-    bar = tqdm(total=file_size, desc=f'下载文件：{file_name}')
-    for part in parts:
-        start, end = part
-        start_download(start, end)
-    # 等待全部线程结束
-    multitasking.wait_for_tasks()
-    f.close()
-    bar.close()
+    def Outversion(isOut=False, release=False, snapshot=False, old=False):
+        # isOut是否在屏幕上输出版本列表
+        # release正式版
+        file = open("./version_manifest.json")
+        VersionListDict = loads(file.read())
 
-    shutil.move(file_name, file_directory,file_name)
+        return VersionListDict
+
+
+    Outversion(isOut=True, release=True, snapshot=True, old=True)
+
+
+    def isRightVersion(version: str):
+        VLD = Outversion()
+        flag = False  # 判断是否有这个版本
+        for v in VLD["versions"]:
+            if v["id"] == version:
+                flag = True
+        return flag
+
+
+    # 下载游戏部分
+    def downloadVersion(version: str, mcDir: str):
+        Threads = []  # 线程池
+        # mcDir.minecraft路径
+        downloadList(mcDir,version)
+        # 1,下载版本json文件
+        if isRightVersion(version):
+            VLD = Outversion()
+            for v in VLD["versions"]:
+                if v["id"] == version:
+                    url = v["url"]
+                    path = mcDir + "/versions/" + version + "/" + version + ".json"
+                    if not exists(mcDir + "/versions/" + version):
+                        makedirs(mcDir + "/versions/" + version)
+                    url = str(url)
+                    download(url=url, path=path)
+                    print("版本json下载完成\n")
+
+        # 2,下载客户端
+        VersionDict = loads(open(mcDir + "/versions/" + version + "/" + version + ".json",encoding="UTF-8").read())
+        url = "https://bmclapi2.bangbang93.com/version/"+version+"/client"
+        path = mcDir + "/versions/" + version + "/" + version + ".jar"
+        download(url=url, path=path)
+        print("游戏本体下载完成\n")
+
+        # 3,下载依赖库
+        for lib in VersionDict["libraries"]:
+            # 3.1,下载普通库
+            if "artifact" in lib["downloads"] and not "classifiers" in lib["downloads"]:
+                url = lib["downloads"]["artifact"]["url"]
+                (filepath, tempfilename) = split(lib["downloads"]["artifact"]["path"])
+                if not exists(mcDir + "/libraries/" + filepath):
+                    makedirs(mcDir + "/libraries/" + filepath)
+                path = mcDir + "/libraries/" + lib["downloads"]["artifact"]["path"]
+                url = str.replace(url,"https://libraries.minecraft.net/","https://bmclapi2.bangbang93.com/maven/")
+                download(url=url, path=path)
+
+            # 3.2,下载natives库
+            if "classifiers" in lib["downloads"]:
+                # 3.2.1,下载artifact部分
+                try:
+                    print("-------------------------------------")
+                    url = lib['downloads']["artifact"]["url"]
+                    (filepath, tempfilename) = split(lib["downloads"]["artifact"]["path"])
+                    if not exists(mcDir + "/libraries/" + filepath):
+                        makedirs(mcDir + "/libraries/" + filepath)
+                    path = mcDir + "/libraries/" + lib["downloads"]["artifact"]["path"]
+                    url = str.replace(url,"https://libraries.minecraft.net/","https://bmclapi2.bangbang93.com/maven/")
+                    download(url=url, path=path)
+                    print("------------------------------------")
+                except KeyError:
+                    pass
+                # 3.2.2,下载classifiers部分
+                for cl in lib["downloads"]["classifiers"].values():
+                    url = cl["url"]
+                    (filepath, tempfilename) = split(cl["path"])
+                    if not exists(mcDir + "/libraries/" + filepath):
+                        makedirs(mcDir + "/libraries/" + filepath)
+                    path = mcDir + "/libraries/" + cl["path"]
+                    url = str.replace(url, "https://libraries.minecraft.net/", "https://bmclapi2.bangbang93.com/maven/")
+                    download(url=url, path=path)
+        print("\n依赖库下载完成\n")
+
+        # 4,下载资源索引
+        url = VersionDict["assetIndex"]["url"]
+        path = mcDir + "/assets/indexes/" + VersionDict["assetIndex"]["id"] + ".json"
+        url = str.replace(url,"https://piston-meta.mojang.com/","https://bmclapi2.bangbang93.com/")
+        download(url=url, path=path)
+        print("\资源索引文件下载完成下载完成\n")
+
+        # 5,下载资源文件
+        # 5.1,解析资源索引文件
+        for object in loads(open(path, "r").read())["objects"].values():
+            url = f"https://bmclapi2.bangbang93.com/assets/{object['hash'][0:2]}/{object['hash']}"
+            path = f"{mcDir}/assets/objects/{object['hash'][0:2]}/{object['hash']}"
+            if not exists(path):
+                def runnable():
+                    download(url=url, path=path)
+
+                thread = Thread(target=runnable)
+                thread.start()
+                Threads.append(thread)
+                # 5.1.1,少许停顿. 避免冲突
+                i = 7
+                while i > 0:
+                    i -= 1
+
+        # 5.2,等待线程池中所有线程进行完成
+        for th in Threads:
+            th.join()
+
+
+    if not exists(".minecraft"):
+        makedirs(".minecraft")
+except FileExistsError:
+    pass
