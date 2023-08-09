@@ -1,4 +1,4 @@
-from os import makedirs
+from os import makedirs,getcwd
 from urllib.request import urlretrieve  # 下载函数
 from sys import stdout
 from os.path import exists, split
@@ -7,7 +7,9 @@ from threading import Thread
 import ssl
 import urllib
 import random
+
 try:
+    myPATH = getcwd()
     opener = urllib.request.build_opener()
     # 构建请求头列表每次随机选择一个
     ua_list = ['Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0',
@@ -23,37 +25,37 @@ try:
     ssl._create_default_https_context = ssl._create_unverified_context
     # 下载文件函数
     def download(url: str, path: str):
-        # try:
-        print(url)
-        (filepath, filename) = split(path)
-        if not exists(filepath):
-            makedirs(filepath)
+        try:
+            print(url)
+            (filepath, filename) = split(path)
+            if not exists(filepath):
+                makedirs(filepath)
 
-        def hook(blocknum, bs, size):  # 回调
-            # blocknum数据块数量
-            # bs数据块大小
-            # size下载下来的总大小
-            # 下载进度 = (blocknum x bs) / size
-            a = int(float(blocknum * bs) / size * 100)
-            if a >= 100:
-                a = 100
+            def hook(blocknum, bs, size):  # 回调
+                # blocknum数据块数量
+                # bs数据块大小
+                # size下载下来的总大小
+                # 下载进度 = (blocknum x bs) / size
+                a = int(float(blocknum * bs) / size * 100)
+                if a >= 100:
+                    a = 100
 
-            stdout.write("\r>>正在下载" + filename + ":" + str(a) + "%")
+                stdout.write("\r>>正在下载" + filename + ":" + str(a) + "%")
 
-        urlretrieve(url=url, filename=path, reporthook=hook)
-        print("\n")
-        # except:
-        #     # print("\n由于网络原因，下载发生错误，正在尝试重新下载\n")
-        #     # download(url=url, path=path)
+            urlretrieve(url=url, filename=path, reporthook=hook)
+            print("\n")
+        except:
+            print("\n由于网络原因，下载发生错误，正在尝试重新下载\n")
+            download(url=url, path=path)
 
 
     def downloadList(Path,version):
         # 下载版本清单文件
         # url = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
         url = "https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json"  # 国内源
-        path = Path+"/"+version+"/version_manifest.json"
+        path = myPATH+"/version_manifest.json"
 
-        download(url=url, path=path)
+        download(url,path)
         print("下载完成\n")
 
 
@@ -68,9 +70,10 @@ try:
 
         return VersionListDict
 
-
-    Outversion(isOut=True, release=True, snapshot=True, old=True)
-
+    try:
+        Outversion(isOut=True, release=True, snapshot=True, old=True)
+    except:
+        pass
 
     def isRightVersion(version: str):
         VLD = Outversion()
@@ -122,17 +125,18 @@ try:
             if "classifiers" in lib["downloads"]:
                 # 3.2.1,下载artifact部分
                 try:
-                    print("-------------------------------------")
+                    print("-----------------WARN:容易引发错误--------------------")
                     url = lib['downloads']["artifact"]["url"]
                     (filepath, tempfilename) = split(lib["downloads"]["artifact"]["path"])
                     if not exists(mcDir + "/libraries/" + filepath):
                         makedirs(mcDir + "/libraries/" + filepath)
                     path = mcDir + "/libraries/" + lib["downloads"]["artifact"]["path"]
                     url = str.replace(url,"https://libraries.minecraft.net/","https://bmclapi2.bangbang93.com/maven/")
+                    print(url)
                     download(url=url, path=path)
-                    print("------------------------------------")
+                    print("---------------------------------------------------")
                 except KeyError:
-                    pass
+                    return "error"
                 # 3.2.2,下载classifiers部分
                 for cl in lib["downloads"]["classifiers"].values():
                     url = cl["url"]
