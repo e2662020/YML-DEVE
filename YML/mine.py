@@ -65,4 +65,4 @@ def downloadMinecraftSlowly(mcVersion:str):
 print("设备信息说明\n======================\n操作系统",myOS,"\n默认mc地址",minecraft_directory,"\n======================")
 
 # else:
-#     print("操作系统不匹配，请检查后再试")
+#     print('操作系统不匹配，请检查后再试')
