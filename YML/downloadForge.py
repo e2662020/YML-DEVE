@@ -1,5 +1,5 @@
 from os.path import exists, split
-from os import makedirs,getcwd
+from os import makedirs,getcwd,system
 from urllib.request import urlretrieve
 from sys import stdout
 import urllib
@@ -7,6 +7,7 @@ import random
 import ssl
 import json
 import zipfile
+import os
 
 myPATH = getcwd()
 
@@ -63,29 +64,31 @@ def downloadForgeInstaller(mcVersion):
     for i in forgeVersion:
         print(i)
     forgeVersion = forgeVersion[0]
+    global forge
     forge = mcVersion+'-'+forgeVersion
-    path = myPATH+"forge-"+forge+"-installer.jar"
+    path = myPATH+"/forge-"+forge+"-installer.jar"
     # https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.43/forge-1.20.1-47.1.43-installer.jar
     URL = "https://bmclapi2.bangbang93.com/maven/net/minecraftforge/forge/"+forge+"/forge-"+forge+"-installer.jar"
     download(URL,path)
     return path
 
-def unzip(forge):
-    path =  myPATH+'/Temporarily/ForgeUnZip'
-    zipFile = zipfile.ZipFile(forge)
-    for file in zipFile.namelist():
-        zipFile.extract(file, path)
-    zipFile.close()
+# def unzip(forge):
+#     path =  myPATH+'/Temporarily/ForgeUnZip'
+#     zipFile = zipfile.ZipFile(forge)
+#     for file in zipFile.namelist():
+#         zipFile.extract(file, path)
+#     zipFile.close()
+#
+# def installLibraries(path):
+#     Content = json.loads(open(myPATH+'/Temporarily/ForgeUnZip/install_profile.json',"r").read())
+#     for i in Content['libraries']:
+#         pAth = path+'/'+i['downloads']['artifact']['path']
+#         url = i['downloads']['artifact']['url']
+#         url = str.replace(url,'https://maven.minecraftforge.net/','https://bmclapi2.bangbang93.com/maven/')
+#         download(url,pAth)
 
-def installLibraries(path):
-    Content = json.loads(open(myPATH+'/Temporarily/ForgeUnZip/install_profile.json',"r").read())
-    for i in Content['libraries']:
-        pAth = path+'/'+i['downloads']['artifact']['path']
-        url = i['downloads']['artifact']['url']
-        url = str.replace(url,'https://maven.minecraftforge.net/','https://bmclapi2.bangbang93.com/maven/')
-        download(url,pAth)
-
-def  installForge(mcversion,path):
-    forge = downloadForgeInstaller(mcversion)
-    unzip(forge)
-    installLibraries(path)
+def  installForge(mcversion):
+    forgePATH = downloadForgeInstaller(mcversion)
+    system('java -jar '+forgePATH)
+    os.remove("forge-"+forge+"-installer.jar")
+    os.remove("forge-"+forge+"-installer.jar.log")
