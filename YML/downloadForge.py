@@ -58,13 +58,12 @@ def findForgeList(mcVersion):
         if mcVersion == item['mcversion']:
             Verison.append(item['version'])
     return Verison
-def downloadForgeInstaller(mcVersion):
+
+def getForge(mcVersion):
     forgeVersion = findForgeList(mcVersion)
-    print("查询到以下forge，默认选择最新版本")
-    for i in forgeVersion:
-        print(i)
-    forgeVersion = forgeVersion[0]
-    global forge
+    return forgeVersion
+
+def downloadForgeInstaller(mcVersion,forge):
     forge = mcVersion+'-'+forgeVersion
     path = myPATH+"/forge-"+forge+"-installer.jar"
     # https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.1.43/forge-1.20.1-47.1.43-installer.jar
@@ -87,8 +86,8 @@ def downloadForgeInstaller(mcVersion):
 #         url = str.replace(url,'https://maven.minecraftforge.net/','https://bmclapi2.bangbang93.com/maven/')
 #         download(url,pAth)
 
-def  installForge(mcversion):
-    forgePATH = downloadForgeInstaller(mcversion)
+def  installForge(mcversion,forge):
+    forgePATH = downloadForgeInstaller(mcversion,forge)
     system('java -jar '+forgePATH)
     os.remove("forge-"+forge+"-installer.jar")
     os.remove("forge-"+forge+"-installer.jar.log")

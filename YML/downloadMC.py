@@ -1,3 +1,4 @@
+import os
 from os import makedirs,getcwd
 from urllib.request import urlretrieve  # 下载函数
 from sys import stdout
@@ -7,6 +8,10 @@ from threading import Thread
 import ssl
 import urllib
 import random
+import wget
+
+a = 0
+downloadSource = "https://bmclapi2.bangbang93.com/"
 
 try:
     myPATH = getcwd()
@@ -48,16 +53,22 @@ try:
             print("\n由于网络原因，下载发生错误，正在尝试重新下载\n")
             download(url=url, path=path)
 
+    def normalDownload(url,path=None):
+        if path == None:
+            path = os.getcwd()
+        wget.download(url, path)
+
 
     def downloadList(Path,version):
         # 下载版本清单文件
-        # url = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
-        url = "https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json"  # 国内源
+        url = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
+        # url = "https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json"  # 国内源
         path = myPATH+"/version_manifest.json"
-
+        try:
+            os.remove("version_manifest.json")
+        except:
+            pass
         download(url,path)
-        print("下载完成\n")
-
 
 
 
@@ -67,8 +78,8 @@ try:
         # release正式版
         file = open("./version_manifest.json")
         VersionListDict = loads(file.read())
-
         return VersionListDict
+
 
     try:
         Outversion(isOut=True, release=True, snapshot=True, old=True)
@@ -95,7 +106,7 @@ try:
             for v in VLD["versions"]:
                 if v["id"] == version:
                     url = v["url"]
-                    path = mcDir + "/versions/" + version + "/" + version + ".json"
+                    path = mcDir + "\\versions\\" + version + "\\" + version + ".json"
                     if not exists(mcDir + "/versions/" + version):
                         makedirs(mcDir + "/versions/" + version)
                     url = str(url)
@@ -118,7 +129,7 @@ try:
                 if not exists(mcDir + "/libraries/" + filepath):
                     makedirs(mcDir + "/libraries/" + filepath)
                 path = mcDir + "/libraries/" + lib["downloads"]["artifact"]["path"]
-                url = str.replace(url,"https://libraries.minecraft.net/","https://bmclapi2.bangbang93.com/maven/")
+                url = str.replace(url,"https://libraries.minecraft.net/",downloadSource+"maven/")
                 download(url=url, path=path)
 
             # 3.2,下载natives库
@@ -131,11 +142,12 @@ try:
                     if not exists(mcDir + "/libraries/" + filepath):
                         makedirs(mcDir + "/libraries/" + filepath)
                     path = mcDir + "/libraries/" + lib["downloads"]["artifact"]["path"]
-                    url = str.replace(url,"https://libraries.minecraft.net/","https://bmclapi2.bangbang93.com/maven/")
+                    url = str.replace(url,"https://libraries.minecraft.net/",downloadSource+"maven/")
                     print(url)
                     download(url=url, path=path)
                     print("---------------------------------------------------")
                 except KeyError:
+                    # pass
                     return "error"
                 # 3.2.2,下载classifiers部分
                 for cl in lib["downloads"]["classifiers"].values():
@@ -144,14 +156,14 @@ try:
                     if not exists(mcDir + "/libraries/" + filepath):
                         makedirs(mcDir + "/libraries/" + filepath)
                     path = mcDir + "/libraries/" + cl["path"]
-                    url = str.replace(url, "https://libraries.minecraft.net/", "https://bmclapi2.bangbang93.com/maven/")
+                    url = str.replace(url, "https://libraries.minecraft.net/", downloadSource+"maven/")
                     download(url=url, path=path)
         print("\n依赖库下载完成\n")
 
         # 4,下载资源索引
         url = VersionDict["assetIndex"]["url"]
         path = mcDir + "/assets/indexes/" + VersionDict["assetIndex"]["id"] + ".json"
-        url = str.replace(url,"https://piston-meta.mojang.com/","https://bmclapi2.bangbang93.com/")
+        url = str.replace(url,"https://piston-meta.mojang.com/", downloadSource)
         download(url=url, path=path)
         print("\资源索引文件下载完成下载完成\n")
 
