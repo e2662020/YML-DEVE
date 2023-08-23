@@ -1,4 +1,6 @@
 #导入库文件
+import logging
+
 import minecraft_launcher_lib
 from downloadMC import downloadVersion
 from downloadForge import installForge
@@ -20,6 +22,8 @@ mcDir = minecraft_directory + "/versions/"
 myOS = platform.system()
 with open(myPATH+"azureAPI.txt", "r") as f:
     azureApiKey = f.read
+logging.basicConfig(filename="logs/launcher.log", level=logging.INFO, filemode="w")
+
 # if myOS == "Windows":
 
 def set_status(status: str):
@@ -50,7 +54,7 @@ def runMinecraft(minecraftVersion:str,ram = None,userName:str = None):
     if userName != None:
         options['username'] = userName
     if ram != None:
-        options["jvmArguments"] = ["-Xmx"+str(ram)+"M", "-Xms0M"]
+        options["jvmArguments"] = [f"-Xmx{ramMAX}M", "-Xms0M"]
     print(options)
     minecraft_command = minecraft_launcher_lib.command.get_minecraft_command(minecraftVersion, minecraft_directory, options)
     minecraftVersion = float(minecraftVersion[2:])
@@ -79,35 +83,27 @@ def microsoftLogin():
     webbrowser.open(url)
 
 def getRAM():
-    # 获取信息(没必要的代码，仅示范，可删去)
-    mem = psutil.virtual_memory()
-    mem_total = round(mem.total / 1024 / 1024 / 1024, 2)
-    mem_total1 = round(mem.total / 1024 / 1024, 2)
-    system = f"RAM:\n内存使用率:{mem.percent}%\n物理内存总量:{mem_total}GB={mem_total1}MB\n"
-    mem_available = round(mem.available / 1024 / 1024 / 1024, 2)
-    mem_availablem1 = round(mem.available / 1024 / 1024, 2)
-    system += f"可用内存:{mem_available}GB={mem_availablem1}MB\n"
-    mem_used = round(mem.used / 1024 / 1024 / 1024, 2)
-    mem_used1 = round(mem.used / 1024 / 1024, 2)
-    system += f"已用内存:{mem_used}GB={mem_used1}MB\n"
-    mem_free = round(mem.free / 1024 / 1024 / 1024, 2)
-    mem_free1 = round(mem.free / 1024 / 1024, 2)
-    system += f"空闲内存:{mem_free}GB={mem_free1}MB\n"
-    print(system)
     # 计算最优内存占用
     ram_use = int(round(psutil.virtual_memory().free / 1024 / 1024, 2) / 10 * 8)  # 乘以8意思是取可用内存的80%
     if ram_use > 1024 * 3:  # 乘以3意思是3GB，动态获取不超过这个值
         ram_use = 1024 * 3
     print(ram_use)
+    logging.info(f"内存可以使用:{ram_use}M")
     return ram_use
 
 
 
-print("设备信息说明\n======================\n操作系统",myOS,"\n默认mc地址",minecraft_directory,"\n======================")
+logging.info("设备信息说明操作系统")
+logging.info("======================")
+logging.info(f"操作系统{myOS}")
+logging.info(f"mc地址:{minecraft_directory}")
+logging.info("======================")
+
 
 # downloadMinecraft("1.20.1")
 ramMAX = getRAM()
 if ramMAX <= 1024:
+    logging.warning("剩余内存小于1G")
     while True:
         a = input("你的剩余内存小于1G，游玩体验会有限制，确认是否启动？[y/n]")
         if a == "y" or a == "Y":
