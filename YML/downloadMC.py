@@ -11,7 +11,7 @@ import random
 import wget
 
 a = 0
-downloadSource = "https://bmclapi2.bangbang93.com/"
+downloadSource = "https://download.mcbbs.net/"
 
 try:
     myPATH = getcwd()
@@ -106,7 +106,7 @@ try:
             for v in VLD["versions"]:
                 if v["id"] == version:
                     url = v["url"]
-                    path = mcDir + "\\versions\\" + version + "\\" + version + ".json"
+                    path = mcDir + "/versions/" + version + "/" + version + ".json"
                     if not exists(mcDir + "/versions/" + version):
                         makedirs(mcDir + "/versions/" + version)
                     url = str(url)
@@ -115,7 +115,7 @@ try:
 
         # 2,下载客户端
         VersionDict = loads(open(mcDir + "/versions/" + version + "/" + version + ".json",encoding="UTF-8").read())
-        url = "https://bmclapi2.bangbang93.com/version/"+version+"/client"
+        url = downloadSource+"version/"+version+"/client"
         path = mcDir + "/versions/" + version + "/" + version + ".jar"
         download(url=url, path=path)
         print("游戏本体下载完成\n")
