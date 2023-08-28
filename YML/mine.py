@@ -79,7 +79,7 @@ def downloadMinecraftSlowly(mcVersion:str):
 
 def microsoftLogin():
     #minecraft_launcher_lib.microsoft_account.get_login_url(client_id: str, redirect_uri: str
-    url = minecraft_launcher_lib.microsoft_account.get_login_url("a72d2234-2525-4c00-b8b8-d2bf6ba09d13","https://login.live.com/oauth20_desktop.srf")
+    url = minecraft_launcher_lib.microsoft_account.get_login_url("d9b17459-2055-4f38-9a5b-8e0641bbe41c","https://login.microsoftonline.com/common/oauth2/nativeclient")
     webbrowser.open(url)
 
 def getRAM():
@@ -101,18 +101,21 @@ logging.info("======================")
 
 
 # downloadMinecraft("1.20.1")
-ramMAX = getRAM()
-if ramMAX <= 1024:
-    logging.warning("剩余内存小于1G")
-    while True:
-        a = input("你的剩余内存小于1G，游玩体验会有限制，确认是否启动？[y/n]")
-        if a == "y" or a == "Y":
-            runMinecraft("1.20.1",ramMAX,"RATE")
-            break
-        elif a=="n" or a=="N":
-            quit(0)
-        else:
-            print("我看不懂，请再输入一遍")
+# ramMAX = getRAM()
+# if ramMAX <= 1024:
+#     logging.warning("剩余内存小于1G")
+#     while True:
+#         a = input("你的剩余内存小于1G，游玩体验会有限制，确认是否启动？[y/n]")
+#         if a == "y" or a == "Y":
+#             runMinecraft("1.20.1",ramMAX,"RATE")
+#             break
+#         elif a=="n" or a=="N":
+#             quit(0)
+#         else:
+#             print("我看不懂，请再输入一遍")
+
+microsoftLogin()
+
 # installFabric("1.20.1",minecraft_directory)
 
 # else:
